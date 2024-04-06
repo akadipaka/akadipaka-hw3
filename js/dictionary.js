@@ -1,50 +1,56 @@
-document.addEventListener("DOMContentLoaded", function() {
-    const searchInput = document.getElementById("searchInput");
-    const meaningsSection = document.getElementById("meanings");
-
-    searchInput.addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            const query = searchInput.value.trim();
-            if (query !== "") {
-                fetchDictionaryMeanings(query);
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('wordInput');
+    input.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            searchWord(this.value);
         }
     });
-
-    function fetchDictionaryMeanings(query) {
-        const apiKey = "YOUR_API_KEY"; // Replace with your Free Dictionary API key
-        const apiUrl = `https://www.dictionaryapi.com/api/v3/references/collegiate/json/${query}?key=${apiKey}`;
-
-        fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
-                }
-                return response.json();
-            })
-            .then(data => { 
-                displayMeanings(data);
-            })
-            .catch(error => {
-                console.error("Error fetching data:", error);
-            });
-    }
-
-    function displayMeanings(data) {
-        meaningsSection.innerHTML = "";
-
-        if (Array.isArray(data) && data.length > 0) {
-            data.forEach(meaning => {
-                const definition = meaning.shortdef && meaning.shortdef.length > 0 ? meaning.shortdef[0] : "No definition found";
-                const meaningElement = document.createElement("p");
-                meaningElement.textContent = definition;
-                meaningsSection.appendChild(meaningElement);
-            });
-        } else {
-            const noResultsMessage = document.createElement("p");
-            noResultsMessage.textContent = "No meanings found for this word.";
-            meaningsSection.appendChild(noResultsMessage);
-        }
-    }
 });
+
+function searchWord(word) {
+    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => displayDefinitions(data))
+        .catch(error => {
+            console.error('Error fetching the word:', error);
+            displayError();
+        });
+}
+function displayDefinitions(data) {
+    const definitionsContainer = document.getElementById('definitions');
+    definitionsContainer.innerHTML = ''; 
+
+    if (!Array.isArray(data) || data.length === 0) {
+        definitionsContainer.innerHTML = '<p>Word not found or an error occurred.</p>';
+        return;
+    }
+
+    let overallIndex = 1;
+
+    data.forEach((entry) => {
+        entry.meanings.forEach((meaning) => {
+            meaning.definitions.forEach((definition) => {
+                const definitionElement = document.createElement('div');
+                definitionElement.classList.add('definition');
+
+                const defText = document.createElement('p');
+                defText.innerHTML = `<strong>${overallIndex++}.</strong> ${definition.definition}`;
+                definitionElement.appendChild(defText);
+
+                if (definition.example) {
+                    const exampleText = document.createElement('p');
+                    exampleText.classList.add('example');
+                    exampleText.textContent = `Example: ${definition.example}`;
+                    definitionElement.appendChild(exampleText);
+                }
+
+                definitionsContainer.appendChild(definitionElement);
+            });
+        });
+    });
+}
